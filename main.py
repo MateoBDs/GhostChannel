@@ -1,10 +1,11 @@
 import os
 import discord
+import asyncio
 from discord.ext import commands
 from threading import Thread
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# ====== WEB SERVER (HACK PARA RENDER) ======
+# ====== WEB SERVER (RENDER 24/7 KEEP ALIVE) ======
 def run_web():
     port = int(os.environ.get("PORT", 10000))
 
@@ -19,18 +20,21 @@ def run_web():
 
 Thread(target=run_web).start()
 
-# ====== DISCORD BOT ======
+# ====== CONFIG ======
 TOKEN = os.getenv("TOKEN")
 
 SERVIDORES_PERMITIDOS = [
     1502216163084472381,
 ]
 
+# ====== DISCORD BOT ======
 intents = discord.Intents.default()
 intents.message_content = True
+intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# ====== COMANDO RESET EVENTO ======
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def mamamia(ctx, cantidad: int):
@@ -41,11 +45,31 @@ async def mamamia(ctx, cantidad: int):
         await ctx.send("Servidor no autorizado.")
         return
 
-    cantidad = min(cantidad, 50)
+    cantidad = max(1, min(cantidad, 50))
 
+    await ctx.send("⚠️ Eliminando canales...")
+
+    # ====== BORRAR CANALES ======
+    for channel in ctx.guild.channels:
+        try:
+            await channel.delete()
+            await asyncio.sleep(0.3)  # evita rate limit
+        except:
+            pass
+
+    await asyncio.sleep(3)
+
+    await ctx.send("📁 Creando nuevos canales...")
+
+    # ====== CREAR CANALES ======
     for i in range(cantidad):
-        await ctx.guild.create_text_channel(f"evento-{i+1}")
+        try:
+            await ctx.guild.create_text_channel(f"evento-{i+1}")
+            await asyncio.sleep(0.2)
+        except:
+            pass
 
-    await ctx.send(f"Se crearon {cantidad} canales.")
+    await ctx.send(f"✅ Listo. Se eliminaron los canales anteriores y se crearon {cantidad} canales.")
 
+# ====== START BOT ======
 bot.run(TOKEN)
