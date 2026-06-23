@@ -1,12 +1,18 @@
 import os
 import discord
 import asyncio
+import logging
 from discord.ext import commands
 from threading import Thread
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # =========================
-# 🌐 KEEP ALIVE (RENDER)
+# 🔐 SERVIDOR ÚNICO (TU SERVER)
+# =========================
+GUILD_ID = 1502216163084472381
+
+# =========================
+# 🌐 KEEP ALIVE
 # =========================
 def run_web():
     port = int(os.environ.get("PORT", 10000))
@@ -17,22 +23,18 @@ def run_web():
             self.end_headers()
             self.wfile.write(b"Bot activo")
 
-    server = HTTPServer(("0.0.0.0", port), Handler)
-    server.serve_forever()
+    HTTPServer(("0.0.0.0", port), Handler).serve_forever()
 
-Thread(target=run_web).start()
-
-# =========================
-# 🔐 CONFIG
-# =========================
-TOKEN = os.getenv("TOKEN")
-
-SERVIDORES_PERMITIDOS = [
-    1502216163084472381,
-]
+Thread(target=run_web, daemon=True).start()
 
 # =========================
-# 🤖 BOT SETUP
+# 📊 LOGS
+# =========================
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("bot")
+
+# =========================
+# 🤖 BOT
 # =========================
 intents = discord.Intents.default()
 intents.message_content = True
@@ -41,55 +43,82 @@ intents.guilds = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # =========================
-# 💣 RESET COMANDO
+# 💾 LOG CHANNEL
+# =========================
+log_channel_id = None
+
+# =========================
+# 🔒 BLOQUEO GLOBAL
+# =========================
+def check_guild(ctx):
+    return ctx.guild and ctx.guild.id == GUILD_ID
+
+# =========================
+# 📌 SET LOG CHANNEL
+# =========================
+@bot.command()
+async def setlog(ctx, channel: discord.TextChannel):
+
+    if not check_guild(ctx):
+        return
+
+    global log_channel_id
+    log_channel_id = channel.id
+
+    await ctx.send(f"✅ Canal de logs configurado: {channel.mention}")
+
+# =========================
+# 💣 EVENTO (PROTEGIDO)
 # =========================
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def mamamia(ctx, cantidad: int):
 
-    if ctx.guild is None:
-        return
-
-    if ctx.guild.id not in SERVIDORES_PERMITIDOS:
-        await ctx.send("❌ Servidor no autorizado.")
+    if not check_guild(ctx):
         return
 
     cantidad = max(1, min(cantidad, 50))
 
-    await ctx.send("⚠️ Iniciando reset del servidor...")
+    await ctx.send("⚠️ Ejecutando evento...")
 
     guild = ctx.guild
 
-    # =========================
-    # 🔥 BORRAR CANALES
-    # =========================
-    channels = guild.channels[:]
-
-    for channel in channels:
+    # borrar canales
+    for ch in list(guild.channels):
         try:
-            await channel.delete()
-            await asyncio.sleep(0.2)  # evita rate limits
-        except Exception as e:
-            print(f"Error borrando canal: {e}")
+            await ch.delete()
+            await asyncio.sleep(0.2)
+        except:
+            pass
 
-    await asyncio.sleep(3)
+    await asyncio.sleep(2)
 
-    # =========================
-    # 📁 CREAR CANALES
-    # =========================
-    created = 0
-
+    # crear canales
     for i in range(cantidad):
         try:
             await guild.create_text_channel(f"evento-{i+1}")
-            created += 1
             await asyncio.sleep(0.2)
-        except Exception as e:
-            print(f"Error creando canal: {e}")
+        except:
+            pass
 
-    print(f"Canales creados: {created}")
+    # =========================
+    # 📤 LOGS
+    # =========================
+    if log_channel_id:
+        channel = guild.get_channel(log_channel_id)
+
+        if channel:
+            embed = discord.Embed(
+                title="🔥 Registro de Evento",
+                color=discord.Color.red()
+            )
+
+            embed.add_field(name="📊 Canales creados", value=str(cantidad), inline=False)
+            embed.add_field(name="🏷️ Servidor", value=guild.name, inline=False)
+
+            await channel.send(embed=embed)
 
 # =========================
-# 🚀 RUN BOT
+# 🚀 START
 # =========================
-bot.run(TOKEN)
+bot.run(os.getenv("TOKEN"))
