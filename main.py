@@ -1,11 +1,29 @@
 import os
 import discord
 from discord.ext import commands
+from threading import Thread
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
+# ====== WEB SERVER (HACK PARA RENDER) ======
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Bot activo")
+
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    server.serve_forever()
+
+Thread(target=run_web).start()
+
+# ====== DISCORD BOT ======
 TOKEN = os.getenv("TOKEN")
 
 SERVIDORES_PERMITIDOS = [
-    1502216163084472381,
+    123456789012345678,
 ]
 
 intents = discord.Intents.default()
