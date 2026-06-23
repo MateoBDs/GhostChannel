@@ -5,7 +5,7 @@ from discord.ext import commands
 TOKEN = os.getenv("TOKEN")
 
 SERVIDORES_PERMITIDOS = [
-    123456789012345678,
+    1502216163084472381,
 ]
 
 intents = discord.Intents.default()
