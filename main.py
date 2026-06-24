@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 # =========================
 # 🔐 SERVIDOR ÚNICO (TU SERVER)
 # =========================
-GUILD_ID = 1502216163084472381
+GUILD_ID = 1501321773570986176
 
 # =========================
 # 🌐 KEEP ALIVE
