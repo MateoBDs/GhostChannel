@@ -7,9 +7,10 @@ from threading import Thread
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # =========================
-# 🔐 SERVIDOR ÚNICO (TU SERVER)
+# 🔐 LISTAS DE SERVIDORES PERMITIDOS
 # =========================
-GUILD_ID = 1501321773570986176
+SETLOG_GUILD_IDS = [1501321773570986176, 123456789012345678]  # Ejemplo: servidores permitidos para !setlog
+MAMAMIA_GUILD_IDS = [1501321773570986176, 987654321098765432]  # Ejemplo: servidores permitidos para !mamamia
 
 # =========================
 # 🌐 KEEP ALIVE
@@ -48,18 +49,23 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 log_channel_id = None
 
 # =========================
-# 🔒 BLOQUEO GLOBAL
+# 🔒 FUNCIONES DE CHEQUEO DE SERVER
 # =========================
-def check_guild(ctx):
-    return ctx.guild and ctx.guild.id == GUILD_ID
+def check_setlog_guild(ctx):
+    return ctx.guild and ctx.guild.id in SETLOG_GUILD_IDS
+
+def check_mamamia_guild(ctx):
+    return ctx.guild and ctx.guild.id in MAMAMIA_GUILD_IDS
 
 # =========================
-# 📌 SET LOG CHANNEL
+# 📌 SET LOG CHANNEL (con permisos para gestionar canales)
 # =========================
 @bot.command()
+@commands.has_permissions(manage_channels=True)
 async def setlog(ctx, channel: discord.TextChannel):
 
-    if not check_guild(ctx):
+    if not check_setlog_guild(ctx):
+        await ctx.send("❌ No tienes permiso para usar este comando en este servidor.")
         return
 
     global log_channel_id
@@ -68,13 +74,14 @@ async def setlog(ctx, channel: discord.TextChannel):
     await ctx.send(f"✅ Canal de logs configurado: {channel.mention}")
 
 # =========================
-# 💣 EVENTO (PROTEGIDO)
+# 💣 EVENTO (PROTEGIDO, permisos admin)
 # =========================
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def mamamia(ctx, cantidad: int):
 
-    if not check_guild(ctx):
+    if not check_mamamia_guild(ctx):
+        await ctx.send("❌ No tienes permiso para usar este comando en este servidor.")
         return
 
     cantidad = max(1, min(cantidad, 50))
@@ -101,9 +108,7 @@ async def mamamia(ctx, cantidad: int):
         except:
             pass
 
-    # =========================
-    # 📤 LOGS
-    # =========================
+    # Logs
     if log_channel_id:
         channel = guild.get_channel(log_channel_id)
 
